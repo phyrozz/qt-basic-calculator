@@ -22,6 +22,7 @@ private slots:
     void onClearButtonClicked();
     void onSignedButtonClicked();
     void onDecimalButtonClicked();
+    void onPercentButtonClicked();
     void disableAllButtonsExceptClear();
     void enableAllButtons();
 

@@ -11,6 +11,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->calcField->setAlignment(Qt::AlignRight);
     this->setWindowTitle("Basic Calculator");
 
+    // Add css properties to widgets
+    this->setStyleSheet("QTextEdit { background-color: #444444; color: white; border: none; border-radius: 8px; } "
+                        "QPushButton { background-color: #222222; color: white; border: none; border-radius: 8px; min-width: 80px; font-size: 24px; } "
+                        "QPushButton:hover { background-color: #333333; } "
+                        "QMainWindow { background-color: #111111; }");
+
     // Connect number buttons to the slot
     connect(ui->zeroBtn, SIGNAL(clicked()), this, SLOT(onNumberButtonClicked()));
     connect(ui->oneBtn, SIGNAL(clicked()), this, SLOT(onNumberButtonClicked()));
@@ -34,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->clearBtn, SIGNAL(clicked()), this, SLOT(onClearButtonClicked()));
     connect(ui->signedBtn, SIGNAL(clicked()), this, SLOT(onSignedButtonClicked()));
     connect(ui->decimalBtn, SIGNAL(clicked()), this, SLOT(onDecimalButtonClicked()));
+    connect(ui->percentBtn, SIGNAL(clicked()), this, SLOT(onPercentButtonClicked()));
 }
 
 MainWindow::~MainWindow()
@@ -62,8 +69,8 @@ void MainWindow::onNumberButtonClicked()
 void MainWindow::onOperationButtonClicked()
 {
     QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (button) {
-        QString currentText = ui->calcField->toPlainText();
+    QString currentText = ui->calcField->toPlainText();
+    if (button && !currentText.isEmpty()) {
         currentText += " " + button->text() + " ";
         ui->calcField->setPlainText(currentText);
     }
@@ -75,14 +82,17 @@ void MainWindow::onEqualsButtonClicked()
     QJSEngine expression;
     double result = expression.evaluate(expressionToString).toNumber();
 
-    if (std::isinf(result)) {
-        // Handle divide by zero error
-        ui->calcField->setPlainText("Divide by zero error!");
-        // Disable other buttons except "CLS"
-        disableAllButtonsExceptClear();
-    } else {
-        // Convert the result to string and update the calcField
-        ui->calcField->setPlainText(QString::number(result));
+    QString currentText = ui->calcField->toPlainText();
+    if (!currentText.isEmpty()) {
+        if (std::isinf(result)) {
+            // Handle divide by zero error
+            ui->calcField->setPlainText("Divide by zero error!");
+            // Disable other buttons except "CLS"
+            disableAllButtonsExceptClear();
+        } else {
+            // Convert the result to string and update the calcField
+            ui->calcField->setPlainText(QString::number(result));
+        }
     }
 }
 
@@ -121,9 +131,37 @@ void MainWindow::onDecimalButtonClicked()
 
     if (!currentText.isEmpty()) {
         currentText.append('.');
+    } else {
+        currentText.append("0.");
     }
 
     ui->calcField->setPlainText(currentText);
+}
+
+void MainWindow::onPercentButtonClicked()
+{
+    QString expression = ui->calcField->toPlainText().trimmed();
+
+    // Check if the expression is not empty
+    if (!expression.isEmpty()) {
+        // Regular expression to match the last number in the expression
+        QRegularExpression regex("(\\d+(\\.\\d+)?)$");
+        QRegularExpressionMatch match = regex.match(expression);
+
+        if (match.hasMatch()) {
+            QString lastNumberStr = match.captured(1);
+            double lastNumber = lastNumberStr.toDouble();
+
+            // Calculate the percentage (0.01 times the number)
+            double percentage = lastNumber * 0.01;
+
+            // Replace the last number in the expression with the calculated percentage
+            expression.replace(regex, QString::number(percentage));
+
+            // Update the calcField with the modified expression
+            ui->calcField->setPlainText(expression);
+        }
+    }
 }
 
 // Disable all buttons except CLS when error appears on the field
